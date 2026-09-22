@@ -1,7 +1,7 @@
 process STAR_PASS2 {
 
     tag "$sample_id"
-
+    publishDir "${params.outdir}/star", mode: 'copy'
     input:
     tuple val(sample_id), path(reads), path(junctions)
     path star_index
