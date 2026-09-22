@@ -6,6 +6,8 @@ include { TRIM_GALORE }             from './modules/trim_galore'
 include { FASTQC_TRIMMED }          from './modules/fastqc_trimmed'
 include { PREPARE_REF_GENOME }      from './modules/prepare_ref_genome'
 include { MULTIQC }                 from './modules/multiqc' 
+include { STAR_PASS1 }              from './modules/star_pass1'
+include { STAR_PASS2 }              from './modules/star_pass2'
 
 workflow {
     // first get the reference files
@@ -30,6 +32,25 @@ workflow {
     trimmed_reads_ch = trim_ch.trimmed_reads.map { sample_id, r1, r2 ->
         tuple(sample_id, [r1, r2])
     }
+
+    // STAR two-pass alignment
+    star_pass1 = STAR_PASS1(
+        trimmed_reads_ch,
+        ch_star_idx,
+        ch_gtf
+    )
+
+    star_pass2_input = trimmed_reads_ch
+        .join(star_pass1.junctions)
+        .map { sample_id, reads, junctions ->
+            tuple(sample_id, reads, junctions)
+        }
+
+    star_pass2 = STAR_PASS2(
+        star_pass2_input,
+        ch_star_idx,
+        ch_gtf
+    )
 
     // quality check after trimming
     fastqc_trimmed_ch = FASTQC_TRIMMED(trimmed_reads_ch)
